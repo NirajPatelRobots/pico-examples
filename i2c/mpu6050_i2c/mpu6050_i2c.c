@@ -36,10 +36,10 @@ const uint8_t REG_PWR_MGMT_1 = 0x6B, REG_ACCEL_OUT = 0x3B, REG_GYRO_OUT = 0x43, 
              REG_SIGNAL_PATH_RESET = 0x68, REG_GYRO_CONFIG = 0x1B, REG_ACCEL_CONFIG = 0x1C;
 typedef enum MPU6050_Scale {MPU_FS_0, MPU_FS_1, MPU_FS_2, MPU_FS_3} MPU6050_Scale;
 
-float gyro_scale_deg[] = {250. / 0x7fff, 500. / 0x7fff, 1000. / 0x7fff, 2000. / 0x7fff};
-float gyro_scale_rad[] = {M_PI / 180. * 250. / 0x7fff, M_PI / 180. * 500. / 0x7fff,
+const float gyro_scale_deg[] = {250. / 0x7fff, 500. / 0x7fff, 1000. / 0x7fff, 2000. / 0x7fff};
+const float gyro_scale_rad[] = {M_PI / 180. * 250. / 0x7fff, M_PI / 180. * 500. / 0x7fff,
                           M_PI / 180. *  1000. / 0x7fff, M_PI / 180. *  2000. / 0x7fff};
-float accel_scale[] = {2. / 0x7fff, 4. / 0x7fff, 8. / 0x7fff, 16. / 0x7fff};
+const float accel_scale[] = {2 * 9.81 / 0x7fff, 4 * 9.81 / 0x7fff, 8 * 9.81 / 0x7fff, 16 * 9.81 / 0x7fff};
 
 
 ////////////////////////////////////////////////////lower level functions for i2c
@@ -102,31 +102,45 @@ void mpu6050_read_raw(int16_t accel[3], int16_t gyro[3], int16_t *temp) {
     mpu6050_readreg16(REG_TEMP_OUT, temp, 1);
 }
 
+void mpu6050_read(float accel[3], float gyro_rad[3], float *temp, MPU6050_Scale accel_scale, MPU6050_Scale gyro_scale) {
+    int16_t buffer[7];
+    mpu6050_readreg16(REG_ACCEL_OUT, buffer, 7); //reads all at same time
+    mpu6050_scale_accel(accel, buffer, accel_scale);
+    if (temp) *temp = mpu6050_scale_temp(buffer[3]);
+    mpu6050_scale_gyro_rad(gyro, buffer + 4, gyro_scale);
+}
+
 // set and use sensitivity
-void mpu6050_setscale(MPU6050_Scale accel_scale, MPU6050_Scale gyro_scale) {
+void mpu6050_setscale_gyro(MPU6050_Scale gyro_scale) {
     mpu6050_writereg(REG_GYRO_CONFIG, (uint8_t)gyro_scale << 3);
+}
+void mpu6050_setscale_accel(MPU6050_Scale accel_scale) {
     mpu6050_writereg(REG_ACCEL_CONFIG, (uint8_t)accel_scale << 3);
 }
-void mpu6050_scale_accel(float *accel, int16_t *accel_raw, MPU6050_Scale scale) {
+void mpu6050_scale_accel(float accel[3], int16_t accel_raw[3], MPU6050_Scale scale) {
     for (int i = 0; i < 3; i++) {
         accel[i] = accel_raw[i] * accel_scale[scale];
     }
 }
-void mpu6050_scale_gyro_deg(float *gyro, int16_t *gyro_raw, MPU6050_Scale scale) {
+void mpu6050_scale_gyro_deg(float gyro[3], int16_t gyro_raw[3], MPU6050_Scale scale) {
     for (int i = 0; i < 3; i++) {
         gyro[i] = gyro_raw[i] * gyro_scale_deg[scale];
     }
 }
-void mpu6050_scale_gyro_rad(float *gyro, int16_t *gyro_raw, MPU6050_Scale scale) {
+void mpu6050_scale_gyro_rad(float gyro[3], int16_t gyro_raw[3], MPU6050_Scale scale) {
     for (int i = 0; i < 3; i++) {
         gyro[i] = gyro_raw[i] * gyro_scale_rad[scale];
     }
 }
+float mpu6050_scale_temp(float temp_raw) {
+    return (temp_raw / 340.0) + 36.53;
+}
+
 //TODO: set timing
 //TODO: set and read filter cutoff
 //TODO: read self test
 
-
+//TODO: functional mpu test
 int main() {
     stdio_init_all();
 #if !defined(i2c_default) || !defined(PICO_DEFAULT_I2C_SDA_PIN) || !defined(PICO_DEFAULT_I2C_SCL_PIN)
@@ -148,7 +162,8 @@ int main() {
     //setting CLKSEL = 1 gets better results than 0 if gyro is running and no sleep mode
     mpu6050_power(1, false, false, false);
     MPU6050_Scale testscale = MPU_FS_0;
-    mpu6050_setscale(testscale, testscale);
+    mpu6050_setscale_accel(testscale);
+    mpu6050_setscale_gyro(testscale);
 
     int16_t accel_raw[3], gyro_raw[3], temp_raw;
     float acceleration[3], gyro[3];
@@ -157,14 +172,12 @@ int main() {
         mpu6050_read_raw(accel_raw, gyro_raw, &temp_raw);
         //TODO time read function
 
-        // These are the raw numbers from the chip, so will need tweaking to be really useful.
-        // See the datasheet for more information
+        // These are the raw numbers from the chip
         printf("Raw Acc. X = %d, Y = %d, Z = %d\n", accel_raw[0], accel_raw[1], accel_raw[2]);
         printf("Raw Gyro. X = %d, Y = %d, Z = %d\n", gyro_raw[0], gyro_raw[1], gyro_raw[2]);
         // Temperature is simple so use the datasheet calculation to get deg C.
         // Note this is chip temperature.
-        printf("Temp [C] = %f \t\t Scale = %d\n", (temp_raw / 340.0) + 36.53, testscale);
-        //include the scaling
+        printf("Temp [C] = %f \t\t Scale = %d\n", mpu6050_scale_temp(temp_raw), testscale);
         mpu6050_scale_accel(acceleration, accel_raw, testscale);
         mpu6050_scale_gyro_rad(gyro, gyro_raw, testscale);
         printf("Acc [m/s^2] X = %f, Y = %f, Z = %f\n", acceleration[0], acceleration[1], acceleration[2]);
