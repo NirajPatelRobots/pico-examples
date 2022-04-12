@@ -1,16 +1,18 @@
 /* header for accessing mpu6050 functions in pico-examples
 
 Niraj Patel March 2022 */
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #include "pico/stdlib.h"
-#include "pico/binary_info.h"
 
 typedef enum MPU6050_Scale {MPU_FS_0, MPU_FS_1, MPU_FS_2, MPU_FS_3} MPU6050_Scale;
 
 // lower level functions for i2c
 void mpu6050_writereg(uint8_t reg, uint8_t value); //write one byte to a register
 void mpu6050_readreg(uint8_t reg, uint8_t *out, size_t length);
-void mpu6050_readreg16(uint8_t reg, uint16_t *out, size_t length);
+void mpu6050_readreg16(uint8_t reg, int16_t *out, size_t length);
 void mpu6050_setbusaddr(uint8_t addr); //set the i2c bus address for communication. MPU6050 must already have this value.
 
 // higher level mpu6050 functions
@@ -29,3 +31,7 @@ float mpu6050_scale_temp(float temp_raw);
 void mpu6050_read_raw(int16_t accel[3], int16_t gyro[3], int16_t *temp); //read raw data values. Could read different timesteps.
 void mpu6050_read(float accel[3], float gyro[3], float *temp,
                   MPU6050_Scale accel_scale, MPU6050_Scale gyro_scale); //reads all at same timestep, converts. temp can be NULL.
+
+#ifdef __cplusplus
+}
+#endif
