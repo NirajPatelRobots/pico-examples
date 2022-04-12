@@ -10,6 +10,7 @@
 #include "pico/stdlib.h"
 #include "pico/binary_info.h"
 #include "hardware/i2c.h"
+#include "mpu6050_i2c.h"
 
 /* Example code to talk to a MPU6050 MEMS accelerometer and gyroscope
 
@@ -34,7 +35,6 @@ static uint8_t bus_addr = 0x68;
 // Register addresses in the MPU6050 to read and write data to
 const uint8_t REG_PWR_MGMT_1 = 0x6B, REG_ACCEL_OUT = 0x3B, REG_GYRO_OUT = 0x43, REG_TEMP_OUT = 0x41,
              REG_SIGNAL_PATH_RESET = 0x68, REG_GYRO_CONFIG = 0x1B, REG_ACCEL_CONFIG = 0x1C;
-typedef enum MPU6050_Scale {MPU_FS_0, MPU_FS_1, MPU_FS_2, MPU_FS_3} MPU6050_Scale;
 
 const float gyro_scale_deg[] = {250. / 0x7fff, 500. / 0x7fff, 1000. / 0x7fff, 2000. / 0x7fff};
 const float gyro_scale_rad[] = {M_PI / 180. * 250. / 0x7fff, M_PI / 180. * 500. / 0x7fff,
@@ -107,7 +107,7 @@ void mpu6050_read(float accel[3], float gyro_rad[3], float *temp, MPU6050_Scale 
     mpu6050_readreg16(REG_ACCEL_OUT, buffer, 7); //reads all at same time
     mpu6050_scale_accel(accel, buffer, accel_scale);
     if (temp) *temp = mpu6050_scale_temp(buffer[3]);
-    mpu6050_scale_gyro_rad(gyro, buffer + 4, gyro_scale);
+    mpu6050_scale_gyro_rad(gyro_rad, buffer + 4, gyro_scale);
 }
 
 // set and use sensitivity
@@ -141,7 +141,7 @@ float mpu6050_scale_temp(float temp_raw) {
 //TODO: read self test
 
 //TODO: functional mpu test
-int main() {
+int test() {
     stdio_init_all();
 #if !defined(i2c_default) || !defined(PICO_DEFAULT_I2C_SDA_PIN) || !defined(PICO_DEFAULT_I2C_SCL_PIN)
     #warning i2c/mpu6050_i2c example requires a board with I2C pins
