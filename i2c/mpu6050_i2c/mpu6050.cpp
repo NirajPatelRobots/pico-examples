@@ -3,7 +3,7 @@
 #include "hardware/i2c.h"
 #include "mpu6050_i2c.h"
 
-/*MPU6050::MPU6050() :  //TODO: is there a good way to do this
+/*MPU6050::MPU6050() :  //TODO: smart pointers
 chip_temp(*temp) {
     accel = {0., 0., 0.};
     gyro = {0., 0., 0.};
@@ -15,12 +15,7 @@ MPU6050::MPU6050(float *accel_out, float *gyro_out) :
  accel(accel_out),  gyro(gyro_out), chip_temp(temp) {
     accel_scale = 0;
     gyro_scale = 0;
-    //I2C init
-    i2c_init(i2c_default, 400 * 1000); // Max bus speed 400 kHz
-    gpio_set_function(PICO_DEFAULT_I2C_SDA_PIN, GPIO_FUNC_I2C);
-    gpio_set_function(PICO_DEFAULT_I2C_SCL_PIN, GPIO_FUNC_I2C);
-    gpio_pull_up(PICO_DEFAULT_I2C_SDA_PIN);
-    gpio_pull_up(PICO_DEFAULT_I2C_SCL_PIN);
+    setup_MPU6050_i2c();
 }
 
 void MPU6050::power(uint8_t CLKSEL, bool temp_disable, bool sleep, bool cycle) {
