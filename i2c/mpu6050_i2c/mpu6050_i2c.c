@@ -39,7 +39,7 @@ const uint8_t REG_PWR_MGMT_1 = 0x6B, REG_ACCEL_OUT = 0x3B, REG_GYRO_OUT = 0x43, 
 const float gyro_scale_deg[] = {250. / 0x7fff, 500. / 0x7fff, 1000. / 0x7fff, 2000. / 0x7fff};
 const float gyro_scale_rad[] = {M_PI / 180. * 250. / 0x7fff, M_PI / 180. * 500. / 0x7fff,
                           M_PI / 180. *  1000. / 0x7fff, M_PI / 180. *  2000. / 0x7fff};
-const float accel_scale[] = {2 * 9.81 / 0x7fff, 4 * 9.81 / 0x7fff, 8 * 9.81 / 0x7fff, 16 * 9.81 / 0x7fff};
+const float accel_scale_vals[] = {2 * 9.81 / 0x7fff, 4 * 9.81 / 0x7fff, 8 * 9.81 / 0x7fff, 16 * 9.81 / 0x7fff};
 
 
 ////////////////////////////////////////////////////lower level functions for i2c
@@ -51,7 +51,6 @@ void mpu6050_writereg(uint8_t reg, uint8_t value) {
 }
 
 void mpu6050_readreg(uint8_t reg, uint8_t *out, size_t length) {
-    //read length 8-bit integers from the register at reg, store them in out.
     i2c_write_blocking(i2c_default, bus_addr, &reg, 1, true); // true to keep master control of bus
     i2c_read_blocking(i2c_default, bus_addr, out, length, false);
 }
@@ -61,7 +60,6 @@ void mpu6050_readreg(uint8_t reg, uint8_t *out, size_t length) {};
 #endif
 
 void mpu6050_readreg16(uint8_t reg, int16_t *out, size_t length) {
-    //read length 16-bit from the register at reg, store them in out. Max length 32 (= 64 bytes)
     // For this particular device, we send the device the register we want to read
     // first, then subsequently read from the device. The register is auto incrementing
     // so we don't need to keep sending the register we want, just the first.
@@ -80,16 +78,13 @@ void mpu6050_setbusaddr(uint8_t addr) {
 
 ////////////////////////////////////////////////////higher level mpu6050 functions
 void mpu6050_power(uint8_t CLKSEL, bool temp_disable, bool sleep, bool cycle) {
-    /* Set the power and clock settings. CLKSEL is clock source, see docs. Recommended CLKSEL = 1 if gyro is enabled.
-    temp_disable disables temperature, sleep enables sleep mode, cycle wakes up only when converting. */
     uint8_t pwrval = (CLKSEL & 7) + ((uint8_t)temp_disable << 3)
                     + ((uint8_t)sleep << 6) + ((uint8_t)cycle << 5);
     mpu6050_writereg(REG_PWR_MGMT_1, pwrval);
 }
 
 void mpu6050_reset() {
-    // Reset power management and signal path registers. MPU6050 returns to default settings.
-    // Reset instructions come from register map doc. Includes 200ms of wait.
+    // Reset instructions come from register map doc
     mpu6050_writereg(REG_PWR_MGMT_1, 1 << 7); //DEVICE_RESET = 1
     sleep_ms(100);
     mpu6050_writereg(REG_SIGNAL_PATH_RESET, 7); //GYRO_RESET = ACCEL_RESET = TEMP_RESET = 1
@@ -103,14 +98,15 @@ void mpu6050_read_raw(int16_t accel[3], int16_t gyro[3], int16_t *temp) {
 }
 
 void mpu6050_read(float accel[3], float gyro_rad[3], float *temp, MPU6050_Scale accel_scale, MPU6050_Scale gyro_scale) {
-    int16_t buffer[7];
-    mpu6050_readreg16(REG_ACCEL_OUT, buffer, 7); //reads all at same time
+    // reads acceleration [m/s], gyroscope [rad], and temperature [C] in one i2c interaction 
+    int16_t buffer[7]; // 3 accel + 3 gyro + scalar temp
+    mpu6050_readreg16(REG_ACCEL_OUT, buffer, 7);
     mpu6050_scale_accel(accel, buffer, accel_scale);
     if (temp) *temp = mpu6050_scale_temp(buffer[3]);
     mpu6050_scale_gyro_rad(gyro_rad, buffer + 4, gyro_scale);
 }
 
-// set and use sensitivity
+// functions to set and calculate with sensitivity
 void mpu6050_setscale_gyro(MPU6050_Scale gyro_scale) {
     mpu6050_writereg(REG_GYRO_CONFIG, (uint8_t)gyro_scale << 3);
 }
@@ -119,7 +115,7 @@ void mpu6050_setscale_accel(MPU6050_Scale accel_scale) {
 }
 void mpu6050_scale_accel(float accel[3], int16_t accel_raw[3], MPU6050_Scale scale) {
     for (int i = 0; i < 3; i++) {
-        accel[i] = accel_raw[i] * accel_scale[scale];
+        accel[i] = accel_raw[i] * accel_scale_vals[scale];
     }
 }
 void mpu6050_scale_gyro_deg(float gyro[3], int16_t gyro_raw[3], MPU6050_Scale scale) {
@@ -135,20 +131,25 @@ void mpu6050_scale_gyro_rad(float gyro[3], int16_t gyro_raw[3], MPU6050_Scale sc
 float mpu6050_scale_temp(float temp_raw) {
     return (temp_raw / 340.0) + 36.53;
 }
+void mpu6050_gyro_selftest_on(void) {
+    uint8_t regdata = 0b11100000 & ((uint8_t)MPU_FS_0 << 3);
+    mpu6050_writereg(REG_GYRO_CONFIG, regdata);
+}
+void mpu6050_accel_selftest_on(void) {
+    uint8_t regdata = 0b11100000 & ((uint8_t)MPU_FS_2 << 3);
+    mpu6050_writereg(REG_ACCEL_CONFIG, regdata);
+}
 
 //TODO: set timing
 //TODO: set and read filter cutoff
-//TODO: read self test
+//TODO: interrupts
 
-//TODO: functional mpu test
-int test() {
-    stdio_init_all();
+bool setup_MPU6050_i2c() {
 #if !defined(i2c_default) || !defined(PICO_DEFAULT_I2C_SDA_PIN) || !defined(PICO_DEFAULT_I2C_SCL_PIN)
     #warning i2c/mpu6050_i2c example requires a board with I2C pins
     puts("Default I2C pins were not defined");
+    return false;
 #else
-    printf("Hello, MPU6050! Reading raw data from registers...\n");
-
     // This example will use I2C0 on the default SDA and SCL pins (4, 5 on a Pico)
     i2c_init(i2c_default, 400 * 1000); // Max bus speed 400 kHz
     gpio_set_function(PICO_DEFAULT_I2C_SDA_PIN, GPIO_FUNC_I2C);
@@ -157,10 +158,11 @@ int test() {
     gpio_pull_up(PICO_DEFAULT_I2C_SCL_PIN);
     // Make the I2C pins available to picotool
     bi_decl(bi_2pins_with_func(PICO_DEFAULT_I2C_SDA_PIN, PICO_DEFAULT_I2C_SCL_PIN, GPIO_FUNC_I2C));
+    return true;
+#endif
+}
 
-    mpu6050_reset();
-    //setting CLKSEL = 1 gets better results than 0 if gyro is running and no sleep mode
-    mpu6050_power(1, false, false, false);
+int run_MPU6050_demo() {
     MPU6050_Scale testscale = MPU_FS_0;
     mpu6050_setscale_accel(testscale);
     mpu6050_setscale_gyro(testscale);
@@ -168,16 +170,21 @@ int test() {
     int16_t accel_raw[3], gyro_raw[3], temp_raw;
     float acceleration[3], gyro[3];
 
+    mpu6050_reset();
+    //setting CLKSEL = 1 gets better results than 0 if gyro is running and no sleep mode
+    mpu6050_power(1, false, false, false);
+
     while (1) {
+        uint64_t time_us = to_us_since_boot(get_absolute_time());
         mpu6050_read_raw(accel_raw, gyro_raw, &temp_raw);
-        //TODO time read function
+        time_us = to_us_since_boot(get_absolute_time()) - time_us;
 
         // These are the raw numbers from the chip
         printf("Raw Acc. X = %d, Y = %d, Z = %d\n", accel_raw[0], accel_raw[1], accel_raw[2]);
         printf("Raw Gyro. X = %d, Y = %d, Z = %d\n", gyro_raw[0], gyro_raw[1], gyro_raw[2]);
-        // Temperature is simple so use the datasheet calculation to get deg C.
-        // Note this is chip temperature.
-        printf("Temp [C] = %f \t\t Scale = %d\n", mpu6050_scale_temp(temp_raw), testscale);
+        // This is chip temperature.
+        printf("Temp [C] = %f\n", mpu6050_scale_temp(temp_raw));
+        printf("Read time: %d us; \t\t Accel and Gyro Scale = %d\n", time_us, testscale);
         mpu6050_scale_accel(acceleration, accel_raw, testscale);
         mpu6050_scale_gyro_rad(gyro, gyro_raw, testscale);
         printf("Acc [m/s^2] X = %f, Y = %f, Z = %f\n", acceleration[0], acceleration[1], acceleration[2]);
@@ -185,7 +192,5 @@ int test() {
 
         sleep_ms(100);
     }
-
-#endif
     return 0;
 }
