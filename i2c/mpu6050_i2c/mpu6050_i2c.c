@@ -34,7 +34,7 @@
 static uint8_t bus_addr = 0x68;
 // Register addresses in the MPU6050 to read and write data to
 const uint8_t REG_PWR_MGMT_1 = 0x6B, REG_ACCEL_OUT = 0x3B, REG_GYRO_OUT = 0x43, REG_TEMP_OUT = 0x41,
-             REG_SIGNAL_PATH_RESET = 0x68, REG_GYRO_CONFIG = 0x1B, REG_ACCEL_CONFIG = 0x1C;
+             REG_SIGNAL_PATH_RESET = 0x68, REG_GYRO_CONFIG = 0x1B, REG_ACCEL_CONFIG = 0x1C, REG_WHO_AM_I = 0x75;
 
 const float gyro_scale_deg[] = {250. / 0x7fff, 500. / 0x7fff, 1000. / 0x7fff, 2000. / 0x7fff};
 const float gyro_scale_rad[] = {M_PI / 180. * 250. / 0x7fff, M_PI / 180. * 500. / 0x7fff,
@@ -131,6 +131,7 @@ void mpu6050_scale_gyro_rad(float gyro[3], int16_t gyro_raw[3], MPU6050_Scale sc
 float mpu6050_scale_temp(float temp_raw) {
     return (temp_raw / 340.0) + 36.53;
 }
+
 void mpu6050_gyro_selftest_on(void) {
     uint8_t regdata = 0b11100000 & ((uint8_t)MPU_FS_0 << 3);
     mpu6050_writereg(REG_GYRO_CONFIG, regdata);
@@ -140,9 +141,12 @@ void mpu6050_accel_selftest_on(void) {
     mpu6050_writereg(REG_ACCEL_CONFIG, regdata);
 }
 
-//TODO: set timing
-//TODO: set and read filter cutoff
-//TODO: interrupts
+bool mpu6050_is_connected(void) {
+    uint8_t who_are_you;
+    mpu6050_readreg(REG_WHO_AM_I, &who_are_you, 1);
+    return who_are_you == 0x68;
+}
+
 
 bool setup_MPU6050_i2c() {
 #if !defined(i2c_default) || !defined(PICO_DEFAULT_I2C_SDA_PIN) || !defined(PICO_DEFAULT_I2C_SCL_PIN)
@@ -175,6 +179,10 @@ int run_MPU6050_demo() {
     mpu6050_power(1, false, false, false);
 
     while (1) {
+        while (!mpu6050_is_connected()) {
+            printf("MPU6050 is not connected...\n");
+            sleep_ms(1000);
+        }
         uint64_t time_us = to_us_since_boot(get_absolute_time());
         mpu6050_read_raw(accel_raw, gyro_raw, &temp_raw);
         time_us = to_us_since_boot(get_absolute_time()) - time_us;

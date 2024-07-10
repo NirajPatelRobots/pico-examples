@@ -25,6 +25,8 @@ void mpu6050_setbusaddr(uint8_t addr); //set the i2c bus address for communicati
 void mpu6050_power(uint8_t CLKSEL, bool temp_disable, bool sleep, bool cycle);
 // Reset power management and signal path registers. MPU6050 returns to default settings. Includes 200ms of wait.
 void mpu6050_reset();
+// Check whether MPU6050 is connected using the read-only WHO_AM_I register, which is always 0x68
+bool mpu6050_is_connected();
 // turn on the mpu6050's accelerometer self test. Turn it off after a few 100ms with mpu6050_setscale_accel
 void mpu6050_accel_selftest_on();  // TODO: find out what "self test" does
 // turn on the mpu6050's gyroscope self test. Turn it off after a few 100ms with mpu6050_setscale_gyro
