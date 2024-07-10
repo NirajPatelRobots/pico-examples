@@ -5,7 +5,8 @@ Niraj Patel March 2022 */
 extern "C" {
 #endif
 
-#include "pico/stdlib.h"
+#include "stdint.h"
+#include "stddef.h"
 
 typedef enum MPU6050_Scale {MPU_FS_0, MPU_FS_1, MPU_FS_2, MPU_FS_3} MPU6050_Scale;
 
