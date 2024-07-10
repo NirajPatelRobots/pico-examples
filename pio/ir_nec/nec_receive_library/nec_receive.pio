@@ -12,8 +12,8 @@
 ; The input pin should be connected to an IR detector with an 'active low' output.
 ;
 ; This program expects there to be 10 state machine clock ticks per 'normal' 562.5us burst period
-; in order to permit timely detection of start of a burst. The initailisation function below sets
-; the correct divisor to achive this relative to the system clock.
+; in order to permit timely detection of start of a burst. The initialisation function below sets
+; the correct divisor to achieve this relative to the system clock.
 ;
 ; Within the 'NEC' protocol frames consists of 32 bits sent least-siginificant bit first; so the
 ; Input Shift Register should be configured to shift right and autopush after 32 bits, as in the
@@ -82,7 +82,7 @@ static inline void nec_receive_program_init (PIO pio, uint sm, uint offset, uint
 
     // Set the clock divider to 10 ticks per 562.5us burst period
     //
-    float div = clock_get_hz (clk_sys) / (10.0 / 526.6e-6);
+    float div = clock_get_hz (clk_sys) / (10.0 / 562.5e-6);
     sm_config_set_clkdiv (&c, div);
 
     // Apply the configuration to the state machine
