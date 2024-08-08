@@ -27,15 +27,22 @@ void MPU6050::reset(void) {
 void MPU6050::setscale_accel(MPU6050::Scale scale) {
     mpu6050_setbusaddr(bus_addr);
     mpu6050_setscale_accel((MPU6050_Scale)scale);
+    accel_scale = scale;
 }
 
 void MPU6050::setscale_gyro(MPU6050::Scale scale) {
     mpu6050_setbusaddr(bus_addr);
     mpu6050_setscale_gyro((MPU6050_Scale)scale);
+    gyro_scale = scale;
 }
 
 void MPU6050::read(void) {
     mpu6050_setbusaddr(bus_addr);
     mpu6050_read(accel, gyro, &temp, (MPU6050_Scale)accel_scale, (MPU6050_Scale)gyro_scale);
+}
+
+bool MPU6050::is_connected() {
+    mpu6050_setbusaddr(bus_addr);
+    return mpu6050_is_connected();
 }
     

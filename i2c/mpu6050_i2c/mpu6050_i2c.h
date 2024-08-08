@@ -31,7 +31,7 @@ bool mpu6050_is_connected();
 void mpu6050_accel_selftest_on();  // TODO: find out what "self test" does
 // turn on the mpu6050's gyroscope self test. Turn it off after a few 100ms with mpu6050_setscale_gyro
 void mpu6050_gyro_selftest_on();
-//set and use scaling
+//set and use scaling. The first read() after setscale() might not have the updated scaling.
 void mpu6050_setscale_accel(MPU6050_Scale accel_scale);
 void mpu6050_setscale_gyro(MPU6050_Scale gyro_scale);
 void mpu6050_scale_accel(float accel[3], int16_t accel_raw[3], MPU6050_Scale scale); //sets accel[3] in m/s^2 from accel_raw[3]
