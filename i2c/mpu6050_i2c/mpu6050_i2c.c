@@ -142,7 +142,7 @@ void mpu6050_accel_selftest_on(void) {
 }
 
 bool mpu6050_is_connected(void) {
-    uint8_t who_are_you;
+    uint8_t who_are_you = 0;
     mpu6050_readreg(REG_WHO_AM_I, &who_are_you, 1);
     return who_are_you == 0x68;
 }
@@ -192,7 +192,7 @@ int run_MPU6050_demo() {
         printf("Raw Gyro. X = %d, Y = %d, Z = %d\n", gyro_raw[0], gyro_raw[1], gyro_raw[2]);
         // This is chip temperature.
         printf("Temp [C] = %f\n", mpu6050_scale_temp(temp_raw));
-        printf("Read time: %d us; \t\t Accel and Gyro Scale = %d\n", time_us, testscale);
+        printf("Read time: %llu us; \t\t Accel and Gyro Scale = %d\n", time_us, (int)testscale);
         mpu6050_scale_accel(acceleration, accel_raw, testscale);
         mpu6050_scale_gyro_rad(gyro, gyro_raw, testscale);
         printf("Acc [m/s^2] X = %f, Y = %f, Z = %f\n", acceleration[0], acceleration[1], acceleration[2]);
