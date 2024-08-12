@@ -33,13 +33,19 @@
 // By default these devices are on bus address 0x68
 static uint8_t bus_addr = 0x68;
 // Register addresses in the MPU6050 to read and write data to
-const uint8_t REG_PWR_MGMT_1 = 0x6B, REG_ACCEL_OUT = 0x3B, REG_GYRO_OUT = 0x43, REG_TEMP_OUT = 0x41,
-             REG_SIGNAL_PATH_RESET = 0x68, REG_GYRO_CONFIG = 0x1B, REG_ACCEL_CONFIG = 0x1C, REG_WHO_AM_I = 0x75;
+const uint8_t REG_ACCEL_OUT = 0x3B, REG_GYRO_OUT = 0x43, REG_TEMP_OUT = 0x41,
+              REG_SMPRT_DIV = 0x19, REG_SIGNAL_PATH_RESET = 0x68, REG_PWR_MGMT_1 = 0x6B, REG_WHO_AM_I = 0x75,
+              REG_CONFIG = 0x1A, REG_GYRO_CONFIG = 0x1B, REG_ACCEL_CONFIG = 0x1C;
 
 const float gyro_scale_deg[] = {250. / 0x7fff, 500. / 0x7fff, 1000. / 0x7fff, 2000. / 0x7fff};
 const float gyro_scale_rad[] = {M_PI / 180. * 250. / 0x7fff, M_PI / 180. * 500. / 0x7fff,
                           M_PI / 180. *  1000. / 0x7fff, M_PI / 180. *  2000. / 0x7fff};
 const float accel_scale_vals[] = {2 * 9.81 / 0x7fff, 4 * 9.81 / 0x7fff, 8 * 9.81 / 0x7fff, 16 * 9.81 / 0x7fff};
+
+const int accel_bandwidth_lookup[] = {260, 184, 94, 44, 21, 10, 5};
+const float accel_delay_lookup[] = {0, 2.0, 3.0, 4.9, 8.5, 13.8, 19.0};
+const int gyro_bandwidth_lookup[] = {256, 188, 98, 42, 20, 10, 5};
+const float gyro_delay_lookup[] = {0.98, 1.9, 2.8, 4.8, 8.3, 13.4, 18.6};
 
 
 ////////////////////////////////////////////////////lower level functions for i2c
@@ -141,6 +147,31 @@ void mpu6050_accel_selftest_on(void) {
     mpu6050_writereg(REG_ACCEL_CONFIG, regdata);
 }
 
+void mpu6050_set_timing(uint8_t lowpass_filter_cfg, uint8_t sample_rate_div) {
+    mpu6050_writereg(REG_SMPRT_DIV, sample_rate_div);
+    mpu6050_writereg(REG_CONFIG, lowpass_filter_cfg & 7);
+}
+void mpu6050_read_timing(mpu6050_timing_params_t *accel_timing, mpu6050_timing_params_t *gyro_timing) {
+    uint8_t reg_data[2];
+    mpu6050_readreg(REG_SMPRT_DIV, reg_data, 2);
+    mpu6050_calc_timing(reg_data[1], reg_data[0], accel_timing, gyro_timing);
+}
+void mpu6050_calc_timing(uint8_t filter_cfg, uint8_t sample_rate_div,
+                    mpu6050_timing_params_t *accel_timing, mpu6050_timing_params_t *gyro_timing) {
+    int i = filter_cfg > 6 ? 0 : filter_cfg;
+    float gyro_measure_rate = (i == 0) ? 8000 : 1000;
+    if (accel_timing) {
+        accel_timing->bandwidth = accel_bandwidth_lookup[i];
+        accel_timing->delay = accel_delay_lookup[i];
+        accel_timing->sample_rate = fmin(1000, gyro_measure_rate / (1 + sample_rate_div));
+    }
+    if (gyro_timing) {
+        gyro_timing->bandwidth = gyro_bandwidth_lookup[i];
+        gyro_timing->delay = gyro_delay_lookup[i];
+        gyro_timing->sample_rate = gyro_measure_rate / (1 + sample_rate_div);
+    }
+}
+
 bool mpu6050_is_connected(void) {
     uint8_t who_are_you = 0;
     mpu6050_readreg(REG_WHO_AM_I, &who_are_you, 1);
@@ -177,6 +208,8 @@ int run_MPU6050_demo() {
     mpu6050_reset();
     //setting CLKSEL = 1 gets better results than 0 if gyro is running and no sleep mode
     mpu6050_power(1, false, false, false);
+
+    mpu6050_set_timing(5, 99); // 10 Hz
 
     while (1) {
         while (!mpu6050_is_connected()) {
