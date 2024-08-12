@@ -8,7 +8,13 @@ extern "C" {
 #include "stdint.h"
 #include "stddef.h"
 
-typedef enum MPU6050_Scale {MPU_FS_0, MPU_FS_1, MPU_FS_2, MPU_FS_3} MPU6050_Scale;
+typedef enum MPU6050_Scale {MPU_FS_0 = 0, MPU_FS_1, MPU_FS_2, MPU_FS_3} MPU6050_Scale;
+
+typedef struct {
+    int bandwidth; // lowpass filter bandwidth [Hz]
+    float delay; // lowpass filter delay [ms]
+    float sample_rate; // rate of new data loading in the register [Hz]
+} mpu6050_timing_params_t;
 
 // lower level functions for i2c
 void mpu6050_writereg(uint8_t reg, uint8_t value); //write one byte to a register
@@ -23,7 +29,7 @@ void mpu6050_setbusaddr(uint8_t addr); //set the i2c bus address for communicati
     CLKSEL is clock source, see docs. Recommended CLKSEL = 1 if gyro is enabled.
     temp_disable disables temperature, sleep enables sleep mode, cycle wakes up only when converting. */
 void mpu6050_power(uint8_t CLKSEL, bool temp_disable, bool sleep, bool cycle);
-// Reset power management and signal path registers. MPU6050 returns to default settings. Includes 200ms of wait.
+// MPU6050 returns to default settings and enters sleep mode. Includes 200ms of wait.
 void mpu6050_reset();
 // Check whether MPU6050 is connected using the read-only WHO_AM_I register, which is always 0x68
 bool mpu6050_is_connected();
@@ -31,6 +37,12 @@ bool mpu6050_is_connected();
 void mpu6050_accel_selftest_on();  // TODO: find out what "self test" does
 // turn on the mpu6050's gyroscope self test. Turn it off after a few 100ms with mpu6050_setscale_gyro
 void mpu6050_gyro_selftest_on();
+// configure lowpass filter and sample rate. Higher filter_cfg -> slower change, higher sample_rate_div -> slower sampling
+void mpu6050_set_timing(uint8_t lowpass_filter_cfg, uint8_t sample_rate_div);
+void mpu6050_read_timing(mpu6050_timing_params_t *accel_timing, mpu6050_timing_params_t *gyro_timing);
+void mpu6050_calc_timing(uint8_t filter_cfg, uint8_t sample_rate_div,
+                         mpu6050_timing_params_t *accel_timing, mpu6050_timing_params_t *gyro_timing);
+
 //set and use scaling. The first read() after setscale() might not have the updated scaling.
 void mpu6050_setscale_accel(MPU6050_Scale accel_scale);
 void mpu6050_setscale_gyro(MPU6050_Scale gyro_scale);
