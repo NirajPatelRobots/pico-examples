@@ -1,6 +1,26 @@
 #include "mpu6050.hpp"
 #include "mpu6050_i2c.h"
 
+
+MPU6050SensorTimingParams::MPU6050SensorTimingParams(int _bandwidth, float _delay, float _sample_rate)
+    : bandwidth(_bandwidth), delay(_delay), sample_rate(_sample_rate) {}
+
+inline const MPU6050SensorTimingParams convert(mpu6050_timing_params_t *c_struct) {  // unfortunate awkwardness of wrapping a C lib
+    return MPU6050SensorTimingParams(c_struct->bandwidth, c_struct->delay, c_struct->sample_rate);
+}
+
+MPU6050TimingParams::MPU6050TimingParams(uint8_t lowpass_filter_cfg, uint8_t sample_rate_div) {
+    mpu6050_timing_params_t accel_timing_c, gyro_timing_c;
+    mpu6050_calc_timing(lowpass_filter_cfg, sample_rate_div, &accel_timing_c, &gyro_timing_c);
+    accel_timing = convert(&accel_timing_c);
+    gyro_timing = convert(&gyro_timing_c);
+}
+
+MPU6050TimingParams::MPU6050TimingParams(const MPU6050SensorTimingParams &_accel_timing,
+                                         const MPU6050SensorTimingParams &_gyro_timing)
+    : accel_timing(_accel_timing), gyro_timing(_gyro_timing) {}
+
+
 /*MPU6050::MPU6050() :  //TODO: smart pointers
 chip_temp(*temp) {
     accel = {0., 0., 0.};
@@ -45,4 +65,16 @@ bool MPU6050::is_connected() {
     mpu6050_setbusaddr(bus_addr);
     return mpu6050_is_connected();
 }
+
+void MPU6050::set_timing(uint8_t lowpass_filter_cfg, uint8_t sample_rate_div) {
+    mpu6050_setbusaddr(bus_addr);
+    mpu6050_set_timing(lowpass_filter_cfg, sample_rate_div);
+}
+
+MPU6050TimingParams MPU6050::read_timing(void) {
+    mpu6050_timing_params_t accel_timing_c, gyro_timing_c;
+    mpu6050_read_timing(&accel_timing_c, &gyro_timing_c);
+    return MPU6050TimingParams(convert(&accel_timing_c), convert(&gyro_timing_c));
+}
+
     

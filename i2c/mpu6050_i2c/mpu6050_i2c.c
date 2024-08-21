@@ -34,6 +34,7 @@
 static uint8_t bus_addr = 0x68;
 // Register addresses in the MPU6050 to read and write data to
 const uint8_t REG_ACCEL_OUT = 0x3B, REG_GYRO_OUT = 0x43, REG_TEMP_OUT = 0x41,
+              REG_INT_PIN_CFG = 0x37, REG_INT_ENABLE = 0x38, REG_INT_STATUS = 0x3A,
               REG_SMPRT_DIV = 0x19, REG_SIGNAL_PATH_RESET = 0x68, REG_PWR_MGMT_1 = 0x6B, REG_WHO_AM_I = 0x75,
               REG_CONFIG = 0x1A, REG_GYRO_CONFIG = 0x1B, REG_ACCEL_CONFIG = 0x1C;
 
@@ -170,6 +171,17 @@ void mpu6050_calc_timing(uint8_t filter_cfg, uint8_t sample_rate_div,
         gyro_timing->delay = gyro_delay_lookup[i];
         gyro_timing->sample_rate = gyro_measure_rate / (1 + sample_rate_div);
     }
+}
+
+void mpu6050_configure_interrupt(bool active_low, bool open_drain, bool latch_pin, bool read_clear, bool enable) {
+    mpu6050_writereg(REG_INT_PIN_CFG,   ((uint8_t)active_low << 7) + ((uint8_t)open_drain << 6)
+                                       + ((uint8_t)latch_pin << 5) + ((uint8_t)read_clear << 4));
+    mpu6050_writereg(REG_INT_ENABLE, (uint8_t)enable);
+}
+uint8_t mpu6050_read_interrupt_status() {
+    uint8_t interrupt_status;
+    mpu6050_readreg(REG_INT_STATUS, &interrupt_status, 1);
+    return interrupt_status;
 }
 
 bool mpu6050_is_connected(void) {
