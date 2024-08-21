@@ -2,11 +2,21 @@
 An abstraction of pico example C code. 
 TODO:
     smart ptrs for results
-    set timing
-    set and read filter cutoff
-    interrupts
  */
 #include "stdint.h"
+
+struct MPU6050SensorTimingParams {
+    MPU6050SensorTimingParams() = default;
+    MPU6050SensorTimingParams(int _bandwidth, float _delay, float _sample_rate);
+    int bandwidth; // lowpass filter bandwidth [Hz]
+    float delay; // lowpass filter delay [ms]
+    float sample_rate; // rate of new data loading in the register [Hz]
+};
+struct MPU6050TimingParams {
+    MPU6050TimingParams(uint8_t lowpass_filter_cfg, uint8_t sample_rate_div);
+    MPU6050TimingParams(const MPU6050SensorTimingParams &_accel_timing, const MPU6050SensorTimingParams &_gyro_timing);
+    MPU6050SensorTimingParams accel_timing, gyro_timing;
+};
 
 class MPU6050 {
 public:
@@ -24,6 +34,8 @@ public:
     void setscale_gyro(Scale scale); // scale 0-3 is 250, 500, 1000, or 2000 deg/s
     void read(void);
     bool is_connected(void);
+    void set_timing(uint8_t lowpass_filter_cfg, uint8_t sample_rate_div);
+    MPU6050TimingParams read_timing(void);
 private:
     float *accel, *gyro, temp;
     enum Scale accel_scale, gyro_scale;

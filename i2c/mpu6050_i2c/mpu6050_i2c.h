@@ -37,11 +37,19 @@ bool mpu6050_is_connected();
 void mpu6050_accel_selftest_on();  // TODO: find out what "self test" does
 // turn on the mpu6050's gyroscope self test. Turn it off after a few 100ms with mpu6050_setscale_gyro
 void mpu6050_gyro_selftest_on();
+
 // configure lowpass filter and sample rate. Higher filter_cfg -> slower change, higher sample_rate_div -> slower sampling
 void mpu6050_set_timing(uint8_t lowpass_filter_cfg, uint8_t sample_rate_div);
 void mpu6050_read_timing(mpu6050_timing_params_t *accel_timing, mpu6050_timing_params_t *gyro_timing);
 void mpu6050_calc_timing(uint8_t filter_cfg, uint8_t sample_rate_div,
                          mpu6050_timing_params_t *accel_timing, mpu6050_timing_params_t *gyro_timing);
+
+void mpu6050_configure_interrupt(bool active_low, // Whether the INT pin is active low or active high
+                                 bool open_drain, // Whether the INT pin is push-pull or open-drain
+                                 bool latch_pin,  // Whether the INT pin latches or pulses for 50us
+                                 bool read_clear, // Whether interrupt status bits are cleared by reading interrupt status (default) or on any read
+                                 bool enable);    // Turn interrupts on or off
+uint8_t mpu6050_read_interrupt_status(); // 0 =  no interrupts set, 1 = data ready
 
 //set and use scaling. The first read() after setscale() might not have the updated scaling.
 void mpu6050_setscale_accel(MPU6050_Scale accel_scale);
