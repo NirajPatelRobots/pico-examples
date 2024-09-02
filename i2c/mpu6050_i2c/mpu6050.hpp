@@ -36,6 +36,12 @@ public:
     bool is_connected(void);
     void set_timing(uint8_t lowpass_filter_cfg, uint8_t sample_rate_div);
     MPU6050TimingParams read_timing(void);
+    void configure_interrupt(bool active_low, // Whether the INT pin is active low or active high
+                             bool open_drain, // Whether the INT pin is push-pull or open-drain
+                             bool latch_pin,  // Whether the INT pin latches or pulses for 50us
+                             bool read_clear, // Whether interrupt status bits are cleared by reading interrupt status (default) or on any read
+                             bool enable);    // Turn interrupts on or off
+    uint8_t read_interrupt_status(); // 0 = no interrupts set, 1 = data ready
 private:
     float *accel, *gyro, temp;
     enum Scale accel_scale, gyro_scale;

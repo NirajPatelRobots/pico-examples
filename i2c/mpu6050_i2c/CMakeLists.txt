@@ -29,3 +29,13 @@ pico_add_extra_outputs(mpu6050_i2c_scale_test)
 # enable usb output, disable uart output
 pico_enable_stdio_usb(mpu6050_i2c_scale_test 1)
 pico_enable_stdio_uart(mpu6050_i2c_scale_test 0)
+
+
+add_executable(mpu6050_i2c_irq mpu6050_i2c_irq_main.cpp)
+target_link_libraries(mpu6050_i2c_irq MPU6050_i2c_pico_cpp_lib)
+
+# create map/bin/hex file etc.
+pico_add_extra_outputs(mpu6050_i2c_irq)
+# enable usb output, disable uart output
+pico_enable_stdio_usb(mpu6050_i2c_irq 1)
+pico_enable_stdio_uart(mpu6050_i2c_irq 0)

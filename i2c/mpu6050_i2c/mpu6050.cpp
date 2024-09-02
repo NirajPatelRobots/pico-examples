@@ -72,9 +72,18 @@ void MPU6050::set_timing(uint8_t lowpass_filter_cfg, uint8_t sample_rate_div) {
 }
 
 MPU6050TimingParams MPU6050::read_timing(void) {
+    mpu6050_setbusaddr(bus_addr);
     mpu6050_timing_params_t accel_timing_c, gyro_timing_c;
     mpu6050_read_timing(&accel_timing_c, &gyro_timing_c);
     return MPU6050TimingParams(convert(&accel_timing_c), convert(&gyro_timing_c));
 }
 
-    
+void MPU6050::configure_interrupt(bool active_low, bool open_drain, bool latch_pin, bool read_clear, bool enable) {
+    mpu6050_setbusaddr(bus_addr);
+    mpu6050_configure_interrupt(active_low, open_drain, latch_pin, read_clear, enable);
+}
+
+uint8_t MPU6050::read_interrupt_status() {
+    mpu6050_setbusaddr(bus_addr);
+    return mpu6050_read_interrupt_status();
+}
