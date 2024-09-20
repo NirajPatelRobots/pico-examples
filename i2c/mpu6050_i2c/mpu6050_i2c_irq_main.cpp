@@ -18,7 +18,7 @@ const uint8_t LOWPASS_FILTER_CFGS[] = {5, 1};
 volatile bool got_irq;
 
 static std::unique_ptr<MPU6050> IMU;
-static float accel[3] = {0}, gyro[3] = {0}; // TODO we shouldn't need this
+static float accel[3] = {0}, gyro[3] = {0};
 
 void print_SensorTimingParams(const MPU6050SensorTimingParams &params) {
     printf("Sample Rate: %.2f, Bandwidth: %i, Delay: %.1f\n", params.sample_rate, params.bandwidth, params.delay);
@@ -72,6 +72,7 @@ int main() {
     bi_decl(bi_1pin_with_name(IRQ_PIN, "IMU IRQ pin 1"));
     IMU = std::make_unique<MPU6050>(accel, gyro);
     IMU->reset();
+    //setting CLKSEL = 1 gets better results than 0 if gyro is running and no sleep mode
     IMU->power(1, false, false, false);
     // push-pull is faster, latch allows debugging with the INT pin
     IMU->configure_interrupt(false, false, true, USE_READ_CLEAR, true);
@@ -85,6 +86,10 @@ int main() {
             printf("MPU6050 is not connected...\n");
         } else if (!got_irq){
             printf("MPU6050 is connected, but didn't trigger an interrupt\n");
+            IMU->read();
+            printf("Read accel and gyro without IRQ:\n"
+                   "%+6f %+6f %+6f | %+6f %+6f %+6f\n",
+                   accel[0], accel[1], accel[2], gyro[0], gyro[1], gyro[2]);
         }
     }
 }

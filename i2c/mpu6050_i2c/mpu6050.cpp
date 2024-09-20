@@ -21,14 +21,6 @@ MPU6050TimingParams::MPU6050TimingParams(const MPU6050SensorTimingParams &_accel
     : accel_timing(_accel_timing), gyro_timing(_gyro_timing) {}
 
 
-/*MPU6050::MPU6050() :  //TODO: smart pointers
-chip_temp(*temp) {
-    accel = {0., 0., 0.};
-    gyro = {0., 0., 0.};
-    temp = {};
-    MPU6050(accel, gyro, temp);
-} */
-
 MPU6050::MPU6050(float *accel_out, float *gyro_out, uint8_t addr) :
  chip_temp(temp), accel(accel_out),  gyro(gyro_out), accel_scale(Scale_0), gyro_scale(Scale_0), bus_addr(addr) {
     setup_MPU6050_i2c();
@@ -61,6 +53,16 @@ void MPU6050::read(void) {
     mpu6050_read(accel, gyro, &temp, (MPU6050_Scale)accel_scale, (MPU6050_Scale)gyro_scale);
 }
 
+void MPU6050::read_accel(void) {
+    mpu6050_setbusaddr(bus_addr);
+    mpu6050_read_accel(accel, (MPU6050_Scale)accel_scale);
+}
+
+void MPU6050::read_gyro(void) {
+    mpu6050_setbusaddr(bus_addr);
+    mpu6050_read_gyro_rad(gyro, (MPU6050_Scale)gyro_scale);
+}
+
 bool MPU6050::is_connected() {
     mpu6050_setbusaddr(bus_addr);
     return mpu6050_is_connected();
@@ -86,4 +88,12 @@ void MPU6050::configure_interrupt(bool active_low, bool open_drain, bool latch_p
 uint8_t MPU6050::read_interrupt_status() {
     mpu6050_setbusaddr(bus_addr);
     return mpu6050_read_interrupt_status();
+}
+
+
+float MPU6050_max_accel(MPU6050::Scale scale) {
+    return accel_scale_vals[(int)scale];
+}
+float MPU6050_max_gyro_rad(MPU6050::Scale scale) {
+    return gyro_scale_rad[(int)scale];
 }
