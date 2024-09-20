@@ -8,14 +8,16 @@
 #include "mpu6050.hpp"
 #include "pico/stdlib.h"
 
-const int READ_DELAY_MS = 100, READS_PER_SCALE = 50, PRINTS_PER_SCALE = 2;
+const uint8_t READ_DELAY_MS = 100, READS_PER_SCALE = 50, PRINTS_PER_SCALE = 3;
 
 int main() {
     stdio_init_all();
-    float accel[3] = {0}, gyro[3] = {0}; // TODO we shouldn't need this
+    float accel[3] = {0}, gyro[3] = {0};
     MPU6050 *IMU = new MPU6050(accel, gyro);
     IMU->reset();
+    //setting CLKSEL = 1 gets better results than 0 if gyro is running and no sleep mode
     IMU->power(1, false, false, false);
+    IMU->set_timing(6, READ_DELAY_MS - 1); // DLPF = 5 Hz
     int accel_scale = 0, gyro_scale = 2;
     while (true) {
         while (!IMU->is_connected()) {

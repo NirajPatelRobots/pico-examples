@@ -1,7 +1,5 @@
 /* class for using an MPU6050 IMU sensor on pi pico.
-An abstraction of pico example C code. 
-TODO:
-    smart ptrs for results
+A C++ interface to the pico example C code.
  */
 #include "stdint.h"
 
@@ -22,7 +20,6 @@ class MPU6050 {
 public:
     const float &chip_temp; // [C]
 
-    MPU6050(); //TODO
     MPU6050(float *accel_out, float *gyro_out, uint8_t i2c_addr=0x68); // [m/s^2], [rad/s]
 
     void power(uint8_t CLKSEL, bool temp_disable, bool sleep, bool cycle);
@@ -33,6 +30,8 @@ public:
     void setscale_accel(Scale scale); //scale 0-3 is 2g, 4g, 8g, or 16g
     void setscale_gyro(Scale scale); // scale 0-3 is 250, 500, 1000, or 2000 deg/s
     void read(void);
+    void read_accel(void);
+    void read_gyro(void);
     bool is_connected(void);
     void set_timing(uint8_t lowpass_filter_cfg, uint8_t sample_rate_div);
     MPU6050TimingParams read_timing(void);
@@ -47,3 +46,6 @@ private:
     enum Scale accel_scale, gyro_scale;
     uint8_t bus_addr;
 };
+
+float MPU6050_max_accel(MPU6050::Scale scale);
+float MPU6050_max_gyro_rad(MPU6050::Scale scale);

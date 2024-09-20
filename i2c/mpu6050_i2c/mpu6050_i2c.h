@@ -16,15 +16,9 @@ typedef struct {
     float sample_rate; // rate of new data loading in the register [Hz]
 } mpu6050_timing_params_t;
 
-// lower level functions for i2c
-void mpu6050_writereg(uint8_t reg, uint8_t value); //write one byte to a register
-//read length 8-bit integers from the register at reg, store them in *out.
-void mpu6050_readreg(uint8_t reg, uint8_t *out, size_t length);
-//read length 16-bit integers from the register at reg, store them in *out. Max length 32 (= 64 bytes)
-void mpu6050_readreg16(uint8_t reg, int16_t *out, size_t length);
+bool setup_MPU6050_i2c(); //call this before using any other functions
 void mpu6050_setbusaddr(uint8_t addr); //set the i2c bus address for communication. MPU6050 must already have this value.
 
-// higher level mpu6050 functions
 /* Set the power and clock settings.
     CLKSEL is clock source, see docs. Recommended CLKSEL = 1 if gyro is enabled.
     temp_disable disables temperature, sleep enables sleep mode, cycle wakes up only when converting. */
@@ -54,18 +48,20 @@ uint8_t mpu6050_read_interrupt_status(); // 0 =  no interrupts set, 1 = data rea
 //set and use scaling. The first read() after setscale() might not have the updated scaling.
 void mpu6050_setscale_accel(MPU6050_Scale accel_scale);
 void mpu6050_setscale_gyro(MPU6050_Scale gyro_scale);
+extern const float gyro_scale_deg[4], gyro_scale_rad[4], accel_scale_vals[4]; // scale constants, index with MPU6050_Scale
 void mpu6050_scale_accel(float accel[3], int16_t accel_raw[3], MPU6050_Scale scale); //sets accel[3] in m/s^2 from accel_raw[3]
-void mpu6050_scale_gyro_deg(float gyro[3], int16_t gyro_raw[3], MPU6050_Scale scale); //sets gyro[3] in degrees from gyro_raw[3]
-void mpu6050_scale_gyro_rad(float gyro[3], int16_t gyro_raw[3], MPU6050_Scale scale); //sets gyro[3] in radians from gyro_raw[3]
+void mpu6050_scale_gyro_deg(float gyro[3], int16_t gyro_raw[3], MPU6050_Scale scale); //sets gyro[3] in degrees/s from gyro_raw[3]
+void mpu6050_scale_gyro_rad(float gyro[3], int16_t gyro_raw[3], MPU6050_Scale scale); //sets gyro[3] in radians/s from gyro_raw[3]
 float mpu6050_scale_temp(float temp_raw);
 
-// core IMU reading functions
-void mpu6050_read_raw(int16_t accel[3], int16_t gyro[3], int16_t *temp); //read raw data values. Could read different samples.
-void mpu6050_read(float accel[3], float gyro[3], float *temp,
+// core sensor data reading functions
+void mpu6050_read_accel_raw(int16_t accel[3]);
+void mpu6050_read_gyro_raw(int16_t gyro[3]);
+void mpu6050_read(float accel[3], float gyro_rad[3], float *temp,
                   MPU6050_Scale accel_scale, MPU6050_Scale gyro_scale); //reads all at same sample time, converts. temp can be NULL.
-
-bool setup_MPU6050_i2c(); //call this before using any other functions
-int run_MPU6050_demo();
+void mpu6050_read_accel(float accel[3], MPU6050_Scale accel_scale);
+void mpu6050_read_gyro_rad(float gyro[3], MPU6050_Scale gyro_scale);
+void mpu6050_read_gyro_deg(float gyro[3], MPU6050_Scale gyro_scale);
 
 #ifdef __cplusplus
 }
