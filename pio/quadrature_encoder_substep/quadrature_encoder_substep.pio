@@ -17,7 +17,7 @@
 ; the PIO code counts steps like the standard quadrature encoder code, but also
 ; keeps track of the time passed since the last transition. That allows the C
 ; code to build a good estimate of a fractional step position based on the
-; lastest speed and time passed
+; latest speed and time passed
 ;
 ; since it needs to push two values, it only pushes new data when the FIFO has
 ; enough space to hold both values. Otherwise it could either stall or go out
@@ -133,6 +133,8 @@ invalid:
 static inline void quadrature_encoder_substep_program_init(PIO pio, uint sm, uint pin_A)
 {
 	uint pin_state, position, ints;
+	pio_gpio_init(pio, pin_A);
+	pio_gpio_init(pio, pin_A + 1);
 
 	pio_sm_set_consecutive_pindirs(pio, sm, pin_A, 2, false);
 	gpio_pull_up(pin_A);
