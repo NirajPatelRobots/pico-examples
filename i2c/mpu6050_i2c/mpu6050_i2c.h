@@ -1,6 +1,4 @@
-/* header for accessing mpu6050 functions in pico-examples
-
-Niraj Patel March 2022 */
+/* mpu6050 functions in pico-examples */
 #ifdef __cplusplus
 extern "C" {
 #endif

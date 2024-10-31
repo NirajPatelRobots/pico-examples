@@ -4,11 +4,10 @@
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
-#include <stdio.h>
-#include <string.h>
 #include <math.h>
-#include "pico/stdlib.h"
+#include <stdint.h>
 #include "pico/binary_info.h"
+#include "hardware/gpio.h"
 #include "hardware/i2c.h"
 #include "mpu6050_i2c.h"
 
